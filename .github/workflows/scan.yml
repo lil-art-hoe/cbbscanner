@@ -1,0 +1,45 @@
+name: CBB Matchup Scanner
+
+on:
+  schedule:
+    # Times are UTC. These are about 8:15 AM, 2:45 PM and 9:15 PM Central.
+    - cron: "17 14 * * *"
+    - cron: "47 20 * * *"
+    - cron: "17 3 * * *"
+  workflow_dispatch: # adds a "Run workflow" button so you can run it any time
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Scan today + tomorrow
+        env:
+          SLATE_TZ: America/Chicago
+        run: python cbb_matchups.py --site site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
