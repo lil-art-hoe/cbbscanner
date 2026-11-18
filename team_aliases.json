@@ -1,0 +1,4 @@
+{
+  "_how_to_use": "If the report lists a D1 team as 'not found', add a line: ESPN's full team name -> the TeamRankings short name exactly as it appears in the stat tables.",
+  "_example: Some ESPN Team Name": "Utah St"
+}
