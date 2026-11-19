@@ -54,6 +54,7 @@ STATS = {
     "three":     ["three-point-pct"],
     "opp_three": ["opponent-three-point-pct"],
     "three_rate": ["three-point-rate"],
+    "opp_three_rate": ["opponent-three-point-rate"],
     "off_eff":   ["offensive-efficiency"],
     "def_eff":   ["defensive-efficiency"],
     "pace":      ["possessions-per-game"],
@@ -73,6 +74,7 @@ FACTORS = [
 MIN_SPLIT_GAMES = 3       # home/away split blended toward this season's overall numbers until a team has this many
                           # games in that split. Set to 1 to use raw splits no matter how few games.
 Z_CAP = 3.0
+THREE_DEF_SHRINK = 0.5    # opponent 3P% is mostly luck early on; count half of it
 SLATE_TZ = os.environ.get("SLATE_TZ", "America/Chicago")  # which day counts as "today" in cloud mode
 REQUEST_DELAY = 1.5       # seconds between TeamRankings requests (be polite, avoid getting blocked)
 
@@ -272,8 +274,29 @@ def parse_record(summary):
     return (int(m.group(1)) + int(m.group(2))) if m else None
 
 
-def fetch_slate(date_str):
-    print("Pulling today's slate from ESPN...")
+def parse_home_line(odds, home_abbr, away_abbr):
+    """Spread from the home team's side: -3.5 = home favored by 3.5, +3.5 = home getting 3.5."""
+    if not odds:
+        return None
+    d = (odds.get("details") or "").strip()
+    if d.upper() in ("EVEN", "PK", "PICK", "PICK'EM"):
+        return 0.0
+    m = re.match(r"(\S+)\s+([+-]?\d+(?:\.\d+)?)$", d)
+    if m:
+        abbr, val = m.group(1), float(m.group(2))
+        if abbr == home_abbr:
+            return val
+        if abbr == away_abbr:
+            return -val
+    sp = odds.get("spread")
+    if isinstance(sp, (int, float)):
+        return float(sp)
+    return None
+
+
+def fetch_slate(date_str, quiet=False):
+    if not quiet:
+        print(f"Pulling the {date_str} slate from ESPN...")
     raw = json.loads(fetch(ESPN_SCOREBOARD.format(d=date_str.replace("-", "")), accept="application/json"))
     games = []
     for ev in raw.get("events", []):
@@ -299,7 +322,19 @@ def fetch_slate(date_str):
         if "home" not in sides or "away" not in sides:
             continue
         odds = (comp.get("odds") or [{}])[0] if comp.get("odds") else {}
+        stype = (ev.get("status") or {}).get("type") or {}
+        scores = {}
+        for c in comp.get("competitors", []):
+            try:
+                scores[c.get("homeAway")] = int(float(c.get("score")))
+            except (TypeError, ValueError):
+                pass
         games.append({
+            "state": stype.get("state", ""),            # pre / in / post
+            "completed": bool(stype.get("completed")),
+            "status_name": stype.get("name", ""),
+            "final": scores if stype.get("completed") else None,
+            "home_line": parse_home_line(odds, sides["home"]["abbr"], sides["away"]["abbr"]),
             "id": ev.get("id"),
             "time": ev.get("date"),
             "status": ((ev.get("status") or {}).get("type") or {}).get("shortDetail", ""),
@@ -309,7 +344,8 @@ def fetch_slate(date_str):
             "spread": odds.get("details") or "",
             "total": odds.get("overUnder"),
         })
-    print(f"  {len(games)} Division I games found")
+    if not quiet:
+        print(f"  {len(games)} Division I games found")
     return games
 
 
@@ -851,6 +887,28 @@ def side_value(stats, norms, stat_key, slug, context, team, sign):
             "note": note, "z": z(used, norms[stat_key], sign)}
 
 
+def phi(x):
+    return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
+
+def three_volume(stats, norms, a_slug, a_ctx, a_team, d_slug, d_ctx, d_team):
+    """How much the 3-point battle matters in this matchup, from 3-point attempt rates.
+    Average volume -> 1.0. A low-volume shooter facing a defense that limits 3s -> near 0."""
+    zs = []
+    rate = side_value(stats, norms, "three_rate", a_slug, a_ctx, a_team, +1) if "three_rate" in stats else None
+    allowed = side_value(stats, norms, "opp_three_rate", d_slug, d_ctx, d_team, +1) if "opp_three_rate" in stats else None
+    if rate and rate["z"] is not None:
+        zs.append(rate["z"])
+    if allowed and allowed["z"] is not None:
+        zs.append(allowed["z"])
+    if not zs:
+        return {"mult": 1.0, "pct": None, "rate_z": None, "allowed_z": None}
+    zv = sum(zs) / len(zs)
+    p = phi(zv)
+    return {"mult": max(0.05, min(1.6, 2.0 * p)), "pct": p,
+            "rate_z": rate["z"] if rate else None, "allowed_z": allowed["z"] if allowed else None}
+
+
 def score_game(g, stats, norms, home_slug, away_slug):
     ctx_h = "neutral" if g["neutral"] else "home"
     ctx_a = "neutral" if g["neutral"] else "away"
@@ -869,22 +927,26 @@ def score_game(g, stats, norms, home_slug, away_slug):
             if not off or not de or off["z"] is None or de["z"] is None:
                 dirs[att] = None
                 continue
-            edge = off["z"] + de["z"]
-            if key == "three" and "three_rate" in stats:
-                rel = side_value(stats, norms, "three_rate", a_slug, a_ctx, a_team, +1)
-                mult = 1.0 + 0.5 * (rel["z"] if rel and rel["z"] is not None else 0.0)
-                mult = max(0.5, min(1.5, mult))
-                edge *= mult
-                off["reliance_mult"] = round(mult, 2)
-            dirs[att] = {"off": off, "def": de, "edge": edge}
-            if biggest is None or abs(edge) > abs(biggest["edge"]):
-                biggest = {"key": key, "label": label, "att": att, "edge": edge}
+            vol = None
+            if key == "three":
+                # Opponent 3P% is mostly noise -> count only half of it.
+                edge = off["z"] + THREE_DEF_SHRINK * de["z"]
+                # Scale by how many 3s will actually be taken: attacking team's 3PA rate
+                # and how many 3s the defense allows (defenses control attempts, not makes).
+                vol = three_volume(stats, norms, a_slug, a_ctx, a_team, d_slug, d_ctx, d_team)
+                edge *= vol["mult"]
+            else:
+                edge = off["z"] + de["z"]
+            dirs[att] = {"off": off, "def": de, "edge": edge, "volume": vol}
+            if biggest is None or abs(edge * weight) > abs(biggest["edge"] * biggest["weight"]):
+                biggest = {"key": key, "label": label, "att": att, "edge": edge, "weight": weight}
         if dirs.get("home") is None or dirs.get("away") is None:
             continue
         net = dirs["home"]["edge"] - dirs["away"]["edge"]
         total += weight * net
         wsum += weight
-        factors.append({"key": key, "label": label, "weight": weight, "net": net, "dirs": dirs})
+        factors.append({"key": key, "label": label, "weight": weight, "net": net,
+                        "impact": weight * net, "dirs": dirs})
 
     eff = None
     if "off_eff" in stats and "def_eff" in stats:
@@ -987,6 +1049,7 @@ main{padding:16px 24px 60px;max-width:1100px}
 .b .side.l{border-radius:6px 0 0 6px}.b .side.r{border-radius:0 6px 6px 0;border-left:1px solid #3a3a46}
 .b .side i{position:absolute;top:0;height:12px}
 .b .side.l i{right:0;background:var(--away);border-radius:6px 0 0 6px}.b .side.r i{left:0;background:var(--home);border-radius:0 6px 6px 0}
+.cap{font-size:11px;color:var(--dim);margin-top:6px}
 .why{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
 .why .lbl{font-size:11px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase;margin-bottom:6px}
 .why li{margin:5px 0;line-height:1.45;font-size:13.5px}
@@ -1057,7 +1120,7 @@ function said(team,key,isOff,q){
 function reasons(g){
  const nm={home:g.home.name,away:g.away.name},out=[];
  const fav=g.score>=0?'home':'away';
- const fs=g.factors.slice().sort((a,b)=>Math.abs(b.net)-Math.abs(a.net)).filter(x=>Math.abs(x.net)>=0.6).slice(0,3);
+ const fs=g.factors.slice().sort((a,b)=>Math.abs(b.impact)-Math.abs(a.impact)).filter(x=>Math.abs(x.impact)>=0.12).slice(0,3);
  for(const fc of fs){
   const winner=fc.net>=0?'home':'away',loser=winner==='home'?'away':'home';
   const wOff=fc.dirs[winner],lOff=fc.dirs[loser];
@@ -1065,32 +1128,41 @@ function reasons(g){
   const s=(wOff.edge>=-lOff.edge)
    ? `<b>${said(nm[winner],fc.key,true,wOff.off.z)}</b>, and ${said(nm[loser],fc.key,false,-wOff.def.z)}.`
    : `<b>${said(nm[winner],fc.key,false,-lOff.def.z)}</b>, and ${said(nm[loser],fc.key,true,lOff.off.z)}.`;
+  let volNote='';
+  if(fc.key==='three'){
+   const drv=(wOff.edge>=-lOff.edge)?wOff:lOff, shooter=(wOff.edge>=-lOff.edge)?nm[winner]:nm[loser];
+   const v=drv.volume;
+   if(v&&v.pct!=null&&v.mult<0.35)continue;            // barely any 3s in this matchup: not worth listing
+   if(v&&v.pct!=null&&v.mult<0.8)volNote=` <span class="tag">(${shooter} doesn't take many 3s here, so this counts for less)</span>`;
+   else if(v&&v.pct!=null&&v.mult>1.25)volNote=` <span class="tag">(${shooter} lives behind the arc, so this one matters more)</span>`;
+  }
   const against=winner!==fav?` <span class="tag">(this one goes the other way)</span>`:'';
-  out.push(`<li><span style="color:var(--${winner})">${PLAIN[fc.key][0]}:</span> ${s}${against}</li>`);
+  out.push(`<li><span style="color:var(--${winner})">${PLAIN[fc.key][0]}:</span> ${s}${volNote}${against}</li>`);
  }
  if(!out.length)out.push('<li>No single battle stands out. These teams match up evenly.</li>');
  return out.join('');
 }
 function battles(g){
- const MAX=4;
+ const MAX=1.2; // impact (stat gap x importance) that fills the whole bar
  return `<div class="hdr"><span></span><span class="a">◀ ${g.away.name}</span><span class="h">${g.home.name} ▶</span></div>`+
-  g.factors.map(fc=>{const w=Math.min(100,Math.abs(fc.net)/MAX*100),h=fc.net>=0;
+  g.factors.map(fc=>{const w=Math.min(100,Math.abs(fc.impact)/MAX*100),h=fc.impact>=0;
    return `<div class="b"><span class="name">${PLAIN[fc.key][0]}</span>
-    <span class="side l">${!h?`<i style="width:${w}%"></i>`:''}</span><span class="side r">${h?`<i style="width:${w}%"></i>`:''}</span></div>`}).join('');
+    <span class="side l">${!h?`<i style="width:${w}%"></i>`:''}</span><span class="side r">${h?`<i style="width:${w}%"></i>`:''}</span></div>`}).join('')+
+  `<div class="cap">Bar length = how much that battle swings the game (size of the gap × how much it matters)</div>`;
 }
 function detail(g){
  const name={home:g.home.name,away:g.away.name};let rows='';
  for(const fc of g.factors){for(const att of ['home','away']){const d=fc.dirs[att],dfn=att==='home'?'away':'home';
   rows+=`<tr><td>${att==='home'?`<b>${PLAIN[fc.key][0]}</b>`:''}</td>
    <td style="color:var(--${att})">${name[att]} offense</td><td class="n">${f(d.off.used,3)}</td><td class="n">${f(d.off.z,2)}</td>
-   <td><span class="note">${d.off.note}${d.off.reliance_mult?` · 3pt reliance x${d.off.reliance_mult}`:''}</span></td>
+   <td><span class="note">${d.off.note}${d.volume?` · 3PA volume x${f(d.volume.mult,2)}, opp 3P% counted at half`:''}</span></td>
    <td style="color:var(--${dfn})">${name[dfn]} defense</td><td class="n">${f(d.def.used,3)}</td><td class="n">${f(d.def.z,2)}</td>
    <td><span class="note">${d.def.note}</span></td><td class="n ${d.edge>=0?'pos':'neg'}">${sgn(d.edge)}</td></tr>`}}
  let extra='';
  if(g.eff)extra+=`<div class="note" style="margin-top:10px">Points per possession: ${g.home.name} O ${f(g.eff.home_off.used,3)} vs ${g.away.name} D ${f(g.eff.away_def.used,3)} · ${g.away.name} O ${f(g.eff.away_off.used,3)} vs ${g.home.name} D ${f(g.eff.home_def.used,3)}</div>`;
  if(g.pace)extra+=`<div class="note">Pace: ${g.home.name} ${f(g.pace.home)} poss/game · ${g.away.name} ${f(g.pace.away)} poss/game</div>`;
  return `<table><tr><th>Battle</th><th>Offense</th><th class="n">value</th><th class="n">z</th><th>based on</th><th>Defense</th><th class="n">value</th><th class="n">z</th><th>based on</th><th class="n">edge</th></tr>${rows}</table>${extra}
- <div class="note" style="margin-top:8px">z = how far from the D1 average in standard deviations (+ = good for that offense). Edge = offense z + defense z.</div>`;
+ <div class="note" style="margin-top:8px">z = how far from the D1 average in standard deviations (+ = good for that offense). Edge = offense z + defense z. Impact on the verdict = edge gap × the battle's weight (shooting 40%, turnovers 25%, boards 20%, free throws 15%, 3s 10%).</div>`;
 }
 function card(g,i){
  const fav=g.score>=0?'home':'away',t=tier(g.score),team=fav==='home'?g.home.name:g.away.name;
@@ -1118,11 +1190,99 @@ render();
 </script></body></html>"""
 
 
+RECORD_HTML = r"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CBB Matchup Scanner · Record</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0d;--panel:#131318;--line:#26262f;--text:#ececf2;--dim:#8a8a99;--home:#ff7a1a;--away:#22d3ee;
+--good:#5ee08a;--bad:#ff5d6c;--mono:'DM Mono',ui-monospace,monospace;--sans:'DM Sans',system-ui,sans-serif;--head:'Oswald',Impact,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px}
+header{padding:22px 24px 14px;border-bottom:1px solid var(--line)}
+h1{font-family:var(--head);font-weight:600;letter-spacing:.06em;margin:0;font-size:26px;text-transform:uppercase}h1 span{color:var(--home)}
+nav{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+nav a{color:var(--dim);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:500}
+nav a.on{color:var(--bg);background:var(--home);border-color:var(--home)}
+.sub{color:var(--dim);font-family:var(--mono);font-size:12px;margin-top:10px}
+main{padding:16px 24px 60px;max-width:1000px}
+.period{display:flex;gap:6px;margin-bottom:16px}
+.period button{background:var(--panel);color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:7px 12px;font-family:var(--sans);font-size:13px;cursor:pointer}
+.period button.on{color:var(--text);border-color:var(--text)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.card .lbl{font-size:11px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+.card .big{font-family:var(--head);font-size:34px;margin-top:4px}
+.card .small{color:var(--dim);font-size:12.5px;margin-top:2px}
+h2{font-family:var(--head);font-weight:500;letter-spacing:.06em;text-transform:uppercase;font-size:17px;margin:22px 0 4px}
+.hint{color:var(--dim);font-size:12.5px;margin-bottom:8px;line-height:1.45}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th{color:var(--dim);font-weight:500;font-size:11.5px;text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);text-transform:uppercase;letter-spacing:.06em}
+td{padding:9px 12px;border-bottom:1px solid #1c1c23;font-size:13.5px}
+td.n,th.n{text-align:right;font-family:var(--mono)}
+.good{color:var(--good)}.bad{color:var(--bad)}.dim{color:var(--dim)}
+.pill{display:inline-block;font-size:10.5px;font-weight:600;letter-spacing:.06em;padding:3px 8px;border-radius:999px;text-transform:uppercase}
+.empty{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:30px;text-align:center;color:var(--dim);line-height:1.6}
+.wrap{overflow-x:auto}
+</style></head><body>
+<header><h1>CBB <span>Matchup</span> Scanner</h1><nav id="nav"></nav><div class="sub" id="sub"></div></header>
+<main id="main"></main>
+<script>
+const D=/*__DATA__*/null;
+const $=s=>document.querySelector(s);
+const TIERS=[['Lopsided','#ff3d5a'],['Strong edge','#ff7a1a'],['Clear edge','#f5c542'],['Slight edge','#9aa0b4'],['Even','#6a6a78']];
+const tcol=t=>(TIERS.find(x=>x[0]===t)||['','#888'])[1];
+const BREAKEVEN=52.4;
+$('#nav').innerHTML=(D.nav||[]).map(n=>`<a href="${n.href}" class="${n.active?'on':''}">${n.label}</a>`).join('');
+$('#sub').textContent=`updated ${D.generated} · ${D.pending} pick(s) waiting on results`;
+let period='all';
+function inPeriod(p){if(period==='all')return true;const days=period==='7'?7:30;
+ const d=new Date(p.date+'T12:00:00'),cut=new Date();cut.setDate(cut.getDate()-days);return d>=cut}
+function tally(ps){const r={n:ps.length,suW:0,suL:0,aW:0,aL:0,aP:0};
+ for(const p of ps){p.result.su==='W'?r.suW++:r.suL++;const a=p.result.ats;if(a==='W')r.aW++;else if(a==='L')r.aL++;else if(a==='P')r.aP++}return r}
+const pct=(w,l)=>w+l?(100*w/(w+l)):null;
+const fp=v=>v==null?'—':v.toFixed(1)+'%';
+function suCell(r){const v=pct(r.suW,r.suL);return `${r.suW}-${r.suL} <span class="dim">${fp(v)}</span>`}
+function atsCell(r){const v=pct(r.aW,r.aL),c=v==null?'dim':v>=BREAKEVEN?'good':'bad';
+ return `${r.aW}-${r.aL}${r.aP?'-'+r.aP:''} <span class="${c}">${fp(v)}</span>`}
+const isDog=p=>p.home_line!=null&&((p.pick==='home'&&p.home_line>0)||(p.pick==='away'&&p.home_line<0));
+const isFav=p=>p.home_line!=null&&((p.pick==='home'&&p.home_line<0)||(p.pick==='away'&&p.home_line>0));
+function pickLine(p){if(p.home_line==null)return '—';const v=p.pick==='home'?p.home_line:-p.home_line;return v===0?'PK':(v>0?'+':'')+v}
+const mark=v=>v==='W'?'<span class="good">✓</span>':v==='L'?'<span class="bad">✗</span>':v==='P'?'<span class="dim">push</span>':'<span class="dim">—</span>';
+function render(){
+ const ps=D.picks.filter(inPeriod);
+ const per=`<div class="period">${[['all','All time'],['30','Last 30 days'],['7','Last 7 days']].map(([k,l])=>`<button class="${k===period?'on':''}" onclick="period='${k}';render()">${l}</button>`).join('')}</div>`;
+ if(!ps.length){$('#main').innerHTML=per+`<div class="empty">No finished games graded yet.<br>Every game gets a saved pick before tip-off, and the next run after it ends grades it here.</div>`;return}
+ const t=tally(ps),ats=pct(t.aW,t.aL);
+ let h=per+`<div class="cards">
+  <div class="card"><div class="lbl">Straight up</div><div class="big">${t.suW}-${t.suL}</div><div class="small">${fp(pct(t.suW,t.suL))} winners picked</div></div>
+  <div class="card"><div class="lbl">Against the spread</div><div class="big ${ats==null?'':ats>=BREAKEVEN?'good':'bad'}">${t.aW}-${t.aL}${t.aP?'-'+t.aP:''}</div><div class="small">${fp(ats)} · ${BREAKEVEN}% needed to profit at -110</div></div>
+  <div class="card"><div class="lbl">Games graded</div><div class="big">${t.n}</div><div class="small">${D.pending} waiting on results</div></div></div>`;
+ h+=`<h2>By edge size</h2><div class="hint">If the scoring is measuring something real, bigger edges should win and cover more often than smaller ones.</div>
+ <div class="wrap"><table><tr><th>Edge</th><th class="n">Games</th><th class="n">Straight up</th><th class="n">Against spread</th></tr>`+
+ TIERS.map(([name,col])=>{const sub=ps.filter(p=>p.tier===name);if(!sub.length)return '';const r=tally(sub);
+  return `<tr><td><span class="pill" style="background:${col}22;color:${col}">${name}</span></td><td class="n">${r.n}</td><td class="n">${suCell(r)}</td><td class="n">${atsCell(r)}</td></tr>`}).join('')+`</table></div>`;
+ const dog=ps.filter(isDog),fav=ps.filter(isFav);
+ h+=`<h2>Scanner vs. Vegas</h2><div class="hint">Games where the scanner's pick is the betting underdog are where it disagrees with the line. That's where a real edge would show up.</div>
+ <div class="wrap"><table><tr><th>Scanner's pick was…</th><th class="n">Games</th><th class="n">Straight up</th><th class="n">Against spread</th></tr>
+ ${[['The betting favorite',fav],['The betting underdog',dog]].map(([l,s])=>{const r=tally(s);return `<tr><td>${l}</td><td class="n">${r.n}</td><td class="n">${r.n?suCell(r):'—'}</td><td class="n">${r.n?atsCell(r):'—'}</td></tr>`}).join('')}</table></div>`;
+ h+=`<h2>Results</h2><div class="wrap"><table><tr><th>Date</th><th>Game</th><th>Pick</th><th class="n">Line</th><th class="n">Final</th><th class="n">SU</th><th class="n">ATS</th></tr>`+
+  ps.slice(0,150).map(p=>{const r=p.result,col=tcol(p.tier);
+   return `<tr><td class="dim">${p.date.slice(5)}</td><td>${p.away} ${p.neutral?'vs':'@'} ${p.home}</td>
+   <td><b style="color:${p.pick==='home'?'var(--home)':'var(--away)'}">${p.pick_team}</b> <span class="pill" style="background:${col}22;color:${col}">${p.tier}</span></td>
+   <td class="n">${pickLine(p)}</td><td class="n">${r.away}-${r.home}</td><td class="n">${mark(r.su)}</td><td class="n">${mark(r.ats)}</td></tr>`}).join('')+`</table></div>`;
+ $('#main').innerHTML=h;
+}
+render();
+</script></body></html>"""
+
+
 # --------------------------------------------------------------------------
 # MAIN
 # --------------------------------------------------------------------------
 
-def run(date_str, refresh=False, open_report=True, stats=None, slate=None, out_path=None, nav=None):
+def run(date_str, refresh=False, open_report=True, stats=None, slate=None, out_path=None, nav=None,
+        collector=None):
     stats = stats if stats is not None else scrape_teamrankings(date_str, refresh)
     failed_stats = [STATS[k][0] for k in STATS if k not in stats]
     norms = build_norms(stats)
@@ -1150,6 +1310,8 @@ def run(date_str, refresh=False, open_report=True, stats=None, slate=None, out_p
         out.append(round_floats(g))
 
     out.sort(key=lambda g: -abs(g["score"]))
+    if collector is not None:
+        collector.extend(out)
     path = write_report(date_str, out, matcher.unmatched, skipped, failed_stats, out_path, nav)
 
     print(f"\nScored {len(out)} games ({skipped} skipped). Top 5 most lopsided:")
@@ -1163,16 +1325,133 @@ def run(date_str, refresh=False, open_report=True, stats=None, slate=None, out_p
     return path
 
 
+# --------------------------------------------------------------------------
+# RESULTS TRACKING (cloud mode)
+# --------------------------------------------------------------------------
+
+HISTORY_FILE = os.path.join(HERE, "history", "picks.json")
+TIERS_PY = [(2.0, "Lopsided"), (1.3, "Strong edge"), (0.8, "Clear edge"), (0.4, "Slight edge"), (0.0, "Even")]
+
+
+def tier_of(score):
+    return next(name for cut, name in TIERS_PY if abs(score) >= cut)
+
+
+def load_history():
+    if os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE) as f:
+            return json.load(f)
+    return {"picks": {}}
+
+
+def save_history(hist):
+    os.makedirs(os.path.dirname(HISTORY_FILE), exist_ok=True)
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(hist, f, indent=1, sort_keys=True)
+
+
+def record_picks(hist, games, date_str):
+    """Save/refresh the pick for every game that hasn't tipped yet. The last pre-game run wins,
+    so the record uses the latest stats and the closest line we saw before tip-off."""
+    n = 0
+    for g in games:
+        if g.get("state", "pre") != "pre" or not g.get("id"):
+            continue
+        old = hist["picks"].get(g["id"])
+        if old and old.get("result"):
+            continue
+        side = "home" if g["score"] >= 0 else "away"
+        hist["picks"][g["id"]] = {
+            "id": g["id"], "date": date_str, "time": g.get("time"), "neutral": g.get("neutral", False),
+            "home": g["home"]["name"], "away": g["away"]["name"],
+            "pick": side, "pick_team": g[side]["name"], "score": round(abs(g["score"]), 3),
+            "tier": tier_of(g["score"]), "home_line": g.get("home_line"),
+            "spread": g.get("spread", ""), "total": g.get("total"),
+        }
+        n += 1
+    return n
+
+
+def grade_picks(hist, today, slate_cache):
+    """Fill in final scores, straight-up and against-the-spread results."""
+    pending = {}
+    for p in hist["picks"].values():
+        if not p.get("result") and dt.date.fromisoformat(p["date"]) <= today:
+            pending.setdefault(p["date"], []).append(p)
+    graded = 0
+    for day, picks in sorted(pending.items()):
+        try:
+            games = slate_cache.get(day) or fetch_slate(day, quiet=True)
+        except Exception as e:
+            print(f"  couldn't fetch results for {day}: {e}")
+            continue
+        by_id = {g["id"]: g for g in games}
+        for p in picks:
+            g = by_id.get(p["id"])
+            old = (today - dt.date.fromisoformat(day)).days > 3
+            if g is None:
+                if old:
+                    p["result"] = {"void": True}
+                continue
+            name = (g.get("status_name") or "").upper()
+            if any(w in name for w in ("POSTPONED", "CANCELED", "CANCELLED", "FORFEIT")):
+                p["result"] = {"void": True}
+                continue
+            fin = g.get("final")
+            if not g.get("completed") or not fin or "home" not in fin or "away" not in fin:
+                if old:
+                    p["result"] = {"void": True}
+                continue
+            margin = fin["home"] - fin["away"]
+            su = "W" if (margin > 0) == (p["pick"] == "home") else "L"
+            ats = None
+            if p.get("home_line") is not None:
+                adj = margin + p["home_line"]
+                if adj == 0:
+                    ats = "P"
+                else:
+                    ats = "W" if (adj > 0) == (p["pick"] == "home") else "L"
+            p["result"] = {"home": fin["home"], "away": fin["away"], "su": su, "ats": ats}
+            graded += 1
+    print(f"Graded {graded} finished game(s).")
+
+
+def write_record_page(path, hist, nav):
+    picks = [p for p in hist["picks"].values() if p.get("result") and not p["result"].get("void")]
+    pending = sum(1 for p in hist["picks"].values() if not p.get("result"))
+    payload = {"picks": sorted(picks, key=lambda p: (p["date"], p.get("time") or ""), reverse=True),
+               "pending": pending, "nav": nav,
+               "generated": slate_now().strftime("%b %d, %Y %I:%M %p %Z").strip()}
+    html = RECORD_HTML.replace("/*__DATA__*/null", json.dumps(payload).replace("</", "<\\/"))
+    with open(path, "w") as f:
+        f.write(html)
+
+
 def build_site(out_dir, refresh=True):
-    """Cloud mode: writes index.html (today) and tomorrow.html into out_dir."""
+    """Cloud mode: today + tomorrow reports, pick tracking, and a Record page."""
+    import copy
+    os.makedirs(out_dir, exist_ok=True)
     today = slate_now().date()
     days = [("Today", today, "index.html"), ("Tomorrow", today + dt.timedelta(days=1), "tomorrow.html")]
+    tabs = [(f"{l} · {d.strftime('%a %b %-d')}", f) for l, d, f in days] + [("Record", "record.html")]
+
+    def nav_for(fname):
+        return [{"label": lab, "href": f, "active": f == fname} for lab, f in tabs]
+
+    hist, slate_cache = load_history(), {}
     for label, day, fname in days:
-        nav = [{"label": f"{l} \u00b7 {d.strftime('%a %b %-d')}", "href": f, "active": f == fname}
-               for l, d, f in days]
         print(f"\n===== {label}: {day.isoformat()} =====")
-        run(day.isoformat(), refresh=refresh, open_report=False,
-            out_path=os.path.join(out_dir, fname), nav=nav)
+        slate = fetch_slate(day.isoformat())
+        slate_cache[day.isoformat()] = copy.deepcopy(slate)
+        scored = []
+        run(day.isoformat(), refresh=refresh, open_report=False, slate=slate,
+            out_path=os.path.join(out_dir, fname), nav=nav_for(fname), collector=scored)
+        print(f"Saved {record_picks(hist, scored, day.isoformat())} pre-game pick(s).")
+
+    print("\n===== Grading =====")
+    grade_picks(hist, today, slate_cache)
+    save_history(hist)
+    write_record_page(os.path.join(out_dir, "record.html"), hist, nav_for("record.html"))
     open(os.path.join(out_dir, ".nojekyll"), "w").close()
 
 
