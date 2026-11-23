@@ -30,6 +30,12 @@
    "neutral": true,
    "pick": "away",
    "pick_team": "Nebraska",
+   "result": {
+    "ats": "L",
+    "away": 76,
+    "home": 74,
+    "su": "W"
+   },
    "score": 1.643,
    "spread": "NEB -12.5",
    "tier": "Strong edge",
@@ -108,6 +114,12 @@
    "neutral": false,
    "pick": "home",
    "pick_team": "Texas",
+   "result": {
+    "ats": "L",
+    "away": 61,
+    "home": 97,
+    "su": "W"
+   },
    "score": 3.712,
    "spread": "TEX -39.5",
    "tier": "Lopsided",
@@ -144,6 +156,12 @@
    "neutral": false,
    "pick": "home",
    "pick_team": "Marquette",
+   "result": {
+    "ats": "W",
+    "away": 62,
+    "home": 106,
+    "su": "W"
+   },
    "score": 4.128,
    "spread": "MARQ -34.5",
    "tier": "Lopsided",
@@ -154,16 +172,16 @@
    "away": "VCU",
    "date": "2026-11-23",
    "home": "Providence",
-   "home_line": null,
+   "home_line": 1.5,
    "id": "401909536",
    "neutral": true,
    "pick": "home",
    "pick_team": "Providence",
    "score": 0.075,
-   "spread": "",
+   "spread": "VCU -1.5",
    "tier": "Even",
    "time": "2026-11-24T02:00Z",
-   "total": null
+   "total": 154.5
   },
   "401909545": {
    "away": "Iowa",
@@ -195,6 +213,12 @@
    "neutral": false,
    "pick": "home",
    "pick_team": "Boston College",
+   "result": {
+    "ats": "L",
+    "away": 59,
+    "home": 79,
+    "su": "W"
+   },
    "score": 3.164,
    "spread": "BC -24.5",
    "tier": "Lopsided",
@@ -310,31 +334,31 @@
    "away": "Colorado St",
    "date": "2026-11-23",
    "home": "Arizona",
-   "home_line": null,
+   "home_line": -17.5,
    "id": "401909743",
    "neutral": true,
    "pick": "home",
    "pick_team": "Arizona",
    "score": 0.421,
-   "spread": "",
+   "spread": "ARIZ -17.5",
    "tier": "Slight edge",
    "time": "2026-11-24T04:30Z",
-   "total": null
+   "total": 159.5
   },
   "401909788": {
    "away": "Denver",
    "date": "2026-11-23",
    "home": "Kansas",
-   "home_line": null,
+   "home_line": -37.5,
    "id": "401909788",
    "neutral": false,
    "pick": "home",
    "pick_team": "Kansas",
-   "score": 3.364,
-   "spread": "",
+   "score": 3.365,
+   "spread": "KU -37.5",
    "tier": "Lopsided",
    "time": "2026-11-24T01:00Z",
-   "total": null
+   "total": 157.5
   },
   "401909799": {
    "away": "Campbell",
@@ -429,6 +453,12 @@
    "neutral": true,
    "pick": "away",
    "pick_team": "Miami OH",
+   "result": {
+    "ats": "W",
+    "away": 71,
+    "home": 60,
+    "su": "W"
+   },
    "score": 0.296,
    "spread": "M-OH -1.5",
    "tier": "Even",
@@ -465,6 +495,12 @@
    "neutral": true,
    "pick": "home",
    "pick_team": "Fordham",
+   "result": {
+    "ats": "W",
+    "away": 58,
+    "home": 80,
+    "su": "W"
+   },
    "score": 0.388,
    "spread": "FOR -2.5",
    "tier": "Even",
@@ -472,19 +508,19 @@
    "total": 143.5
   },
   "401911233": {
-   "away": "San Jose St",
+   "away": "Loyola Chi",
    "date": "2026-11-22",
-   "home": "Loyola Chi",
-   "home_line": -3.5,
+   "home": "San Jose St",
+   "home_line": 4.5,
    "id": "401911233",
    "neutral": true,
-   "pick": "home",
+   "pick": "away",
    "pick_team": "Loyola Chi",
-   "score": 0.329,
-   "spread": "LUC -3.5",
+   "score": 0.328,
+   "spread": "LUC -4.5",
    "tier": "Even",
    "time": "2026-11-23T04:59Z",
-   "total": 148.5
+   "total": 146.5
   },
   "401911252": {
    "away": "Saint Louis",
@@ -616,16 +652,16 @@
    "away": "Nevada",
    "date": "2026-11-23",
    "home": "San Francisco",
-   "home_line": null,
+   "home_line": 7.5,
    "id": "401911457",
    "neutral": true,
    "pick": "away",
    "pick_team": "Nevada",
    "score": 0.208,
-   "spread": "",
+   "spread": "NEV -7.5",
    "tier": "Even",
    "time": "2026-11-23T21:30Z",
-   "total": null
+   "total": 137.5
   },
   "401911534": {
    "away": "UTEP",
@@ -657,6 +693,12 @@
    "neutral": false,
    "pick": "away",
    "pick_team": "Towson",
+   "result": {
+    "ats": "L",
+    "away": 75,
+    "home": 86,
+    "su": "L"
+   },
    "score": 0.089,
    "spread": "AMER -1.5",
    "tier": "Even",
@@ -688,16 +730,16 @@
    "away": "Monmouth",
    "date": "2026-11-23",
    "home": "North Carolina",
-   "home_line": null,
+   "home_line": -20.5,
    "id": "401913102",
    "neutral": false,
    "pick": "home",
    "pick_team": "North Carolina",
-   "score": 1.385,
-   "spread": "",
+   "score": 1.386,
+   "spread": "UNC -20.5",
    "tier": "Strong edge",
    "time": "2026-11-24T01:00Z",
-   "total": null
+   "total": 153.5
   },
   "401913529": {
    "away": "E Illinois",
@@ -729,7 +771,7 @@
    "neutral": false,
    "pick": "home",
    "pick_team": "Illinois",
-   "score": 4.05,
+   "score": 4.051,
    "spread": "",
    "tier": "Lopsided",
    "time": "2026-11-24T01:00Z",
@@ -975,6 +1017,12 @@
    "neutral": true,
    "pick": "home",
    "pick_team": "Loyola Mymt",
+   "result": {
+    "ats": "L",
+    "away": 72,
+    "home": 68,
+    "su": "L"
+   },
    "score": 0.33,
    "spread": "UCI -3.5",
    "tier": "Even",
@@ -997,34 +1045,34 @@
    "total": 146.5
   },
   "401917542": {
-   "away": "Seattle",
+   "away": "UCSD",
    "date": "2026-11-22",
-   "home": "UCSD",
-   "home_line": -1.5,
+   "home": "Seattle",
+   "home_line": 1.5,
    "id": "401917542",
    "neutral": true,
-   "pick": "away",
+   "pick": "home",
    "pick_team": "Seattle",
    "score": 0.63,
    "spread": "UCSD -1.5",
    "tier": "Slight edge",
    "time": "2026-11-23T02:30Z",
-   "total": 145.5
+   "total": 148.5
   },
   "401917543": {
    "away": "Illinois St",
    "date": "2026-11-23",
    "home": "Santa Clara",
-   "home_line": null,
+   "home_line": -5.5,
    "id": "401917543",
    "neutral": true,
    "pick": "home",
    "pick_team": "Santa Clara",
    "score": 0.827,
-   "spread": "",
+   "spread": "SCU -5.5",
    "tier": "Clear edge",
    "time": "2026-11-24T00:00Z",
-   "total": null
+   "total": 151.5
   },
   "401917918": {
    "away": "C Arkansas",
@@ -1123,16 +1171,16 @@
    "away": "Mississippi",
    "date": "2026-11-23",
    "home": "Clemson",
-   "home_line": null,
+   "home_line": 5.5,
    "id": "401918076",
    "neutral": true,
    "pick": "away",
    "pick_team": "Mississippi",
    "score": 1.253,
-   "spread": "",
+   "spread": "MISS -5.5",
    "tier": "Clear edge",
    "time": "2026-11-23T19:30Z",
-   "total": null
+   "total": 149.5
   },
   "401918455": {
    "away": "William & Mary",
@@ -1143,6 +1191,12 @@
    "neutral": false,
    "pick": "home",
    "pick_team": "Youngstown St",
+   "result": {
+    "ats": "L",
+    "away": 75,
+    "home": 63,
+    "su": "L"
+   },
    "score": 0.742,
    "spread": "W&M -2.5",
    "tier": "Slight edge",
@@ -1200,6 +1254,12 @@
    "neutral": false,
    "pick": "home",
    "pick_team": "Memphis",
+   "result": {
+    "ats": "L",
+    "away": 62,
+    "home": 82,
+    "su": "W"
+   },
    "score": 1.011,
    "spread": "MEM -21.5",
    "tier": "Clear edge",
@@ -1252,16 +1312,16 @@
    "away": "Tulane",
    "date": "2026-11-23",
    "home": "Georgia St",
-   "home_line": null,
+   "home_line": -1.5,
    "id": "401919006",
    "neutral": true,
    "pick": "away",
    "pick_team": "Tulane",
-   "score": 0.088,
-   "spread": "",
+   "score": 0.087,
+   "spread": "GAST -1.5",
    "tier": "Even",
    "time": "2026-11-23T21:00Z",
-   "total": null
+   "total": 147.5
   },
   "401919019": {
    "away": "UAB",
@@ -1329,7 +1389,7 @@
    "neutral": false,
    "pick": "home",
    "pick_team": "Wichita St",
-   "score": 1.588,
+   "score": 1.589,
    "spread": "",
    "tier": "Strong edge",
    "time": "2026-11-24T00:30Z",
@@ -1365,7 +1425,7 @@
    "neutral": false,
    "pick": "home",
    "pick_team": "Iona",
-   "score": 3.129,
+   "score": 3.13,
    "spread": "",
    "tier": "Lopsided",
    "time": "2026-11-24T00:00Z",
@@ -1401,6 +1461,12 @@
    "neutral": false,
    "pick": "home",
    "pick_team": "LIU",
+   "result": {
+    "ats": "L",
+    "away": 74,
+    "home": 71,
+    "su": "L"
+   },
    "score": 0.469,
    "spread": "LIU -3.5",
    "tier": "Slight edge",
@@ -1563,6 +1629,12 @@
    "neutral": false,
    "pick": "away",
    "pick_team": "CS Fullerton",
+   "result": {
+    "ats": "W",
+    "away": 92,
+    "home": 75,
+    "su": "W"
+   },
    "score": 0.034,
    "spread": "PRST -4.5",
    "tier": "Even",
@@ -1683,6 +1755,12 @@
    "neutral": true,
    "pick": "away",
    "pick_team": "Virginia Tech",
+   "result": {
+    "ats": "L",
+    "away": 80,
+    "home": 106,
+    "su": "L"
+   },
    "score": 0.346,
    "spread": "VT -1.5",
    "tier": "Even",
@@ -1840,16 +1918,16 @@
    "away": "E Washington",
    "date": "2026-11-23",
    "home": "UNLV",
-   "home_line": null,
+   "home_line": -7.5,
    "id": "401920721",
    "neutral": false,
    "pick": "home",
    "pick_team": "UNLV",
    "score": 1.774,
-   "spread": "",
+   "spread": "UNLV -7.5",
    "tier": "Strong edge",
    "time": "2026-11-24T03:00Z",
-   "total": null
+   "total": 160.5
   },
   "401920736": {
    "away": "Dayton",
@@ -1860,6 +1938,12 @@
    "neutral": true,
    "pick": "away",
    "pick_team": "Dayton",
+   "result": {
+    "ats": "L",
+    "away": 55,
+    "home": 79,
+    "su": "L"
+   },
    "score": 0.64,
    "spread": "DAY -3.5",
    "tier": "Slight edge",
@@ -2131,16 +2215,16 @@
    "away": "Georgia So",
    "date": "2026-11-23",
    "home": "N Kentucky",
-   "home_line": null,
+   "home_line": -3.5,
    "id": "401921029",
    "neutral": false,
    "pick": "away",
    "pick_team": "Georgia So",
    "score": 0.603,
-   "spread": "",
+   "spread": "NKU -3.5",
    "tier": "Slight edge",
    "time": "2026-11-24T00:00Z",
-   "total": null
+   "total": 166.5
   },
   "401921107": {
    "away": "Bellarmine",
@@ -2208,6 +2292,12 @@
    "neutral": true,
    "pick": "away",
    "pick_team": "IU Indy",
+   "result": {
+    "ats": "W",
+    "away": 81,
+    "home": 61,
+    "su": "W"
+   },
    "score": 1.668,
    "spread": "IUIN -10.5",
    "tier": "Strong edge",
@@ -2223,7 +2313,7 @@
    "neutral": true,
    "pick": "home",
    "pick_team": "IU Indy",
-   "score": 0.047,
+   "score": 0.046,
    "spread": "",
    "tier": "Even",
    "time": "2026-11-23T20:30Z",
@@ -2259,6 +2349,12 @@
    "neutral": true,
    "pick": "away",
    "pick_team": "Temple",
+   "result": {
+    "ats": "L",
+    "away": 70,
+    "home": 72,
+    "su": "L"
+   },
    "score": 0.143,
    "spread": "TEM -1.5",
    "tier": "Even",
@@ -2269,46 +2365,46 @@
    "away": "UT Martin",
    "date": "2026-11-22",
    "home": "Utah Valley",
-   "home_line": -7.5,
+   "home_line": -6.5,
    "id": "401921206",
    "neutral": true,
    "pick": "home",
    "pick_team": "Utah Valley",
-   "score": 0.302,
-   "spread": "UVU -7.5",
+   "score": 0.303,
+   "spread": "UVU -6.5",
    "tier": "Even",
-   "time": "2026-11-23T01:00Z",
-   "total": 146.5
+   "time": "2026-11-23T01:10Z",
+   "total": 144.5
   },
   "401921207": {
    "away": "Middle Tenn",
    "date": "2026-11-23",
    "home": "S Illinois",
-   "home_line": null,
+   "home_line": -2.5,
    "id": "401921207",
    "neutral": true,
    "pick": "home",
    "pick_team": "S Illinois",
-   "score": 0.062,
-   "spread": "",
+   "score": 0.063,
+   "spread": "SIU -2.5",
    "tier": "Even",
    "time": "2026-11-23T20:00Z",
-   "total": null
+   "total": 149.5
   },
   "401921209": {
    "away": "Indiana St",
    "date": "2026-11-23",
    "home": "E Carolina",
-   "home_line": null,
+   "home_line": -2.5,
    "id": "401921209",
    "neutral": true,
    "pick": "home",
    "pick_team": "E Carolina",
    "score": 0.891,
-   "spread": "",
+   "spread": "ECU -2.5",
    "tier": "Clear edge",
    "time": "2026-11-23T17:30Z",
-   "total": null
+   "total": 145.5
   },
   "401921222": {
    "away": "Navy",
@@ -2382,6 +2478,12 @@
    "neutral": true,
    "pick": "home",
    "pick_team": "Minnesota",
+   "result": {
+    "ats": "W",
+    "away": 62,
+    "home": 77,
+    "su": "W"
+   },
    "score": 1.798,
    "spread": "MINN -10.5",
    "tier": "Strong edge",
@@ -2392,16 +2494,16 @@
    "away": "Tulsa",
    "date": "2026-11-23",
    "home": "Oregon St",
-   "home_line": null,
+   "home_line": -6.5,
    "id": "401921658",
    "neutral": true,
    "pick": "home",
    "pick_team": "Oregon St",
-   "score": 1.449,
-   "spread": "",
+   "score": 1.45,
+   "spread": "ORST -6.5",
    "tier": "Strong edge",
    "time": "2026-11-23T19:00Z",
-   "total": null
+   "total": 152.5
   },
   "401921691": {
    "away": "Seton Hall",
@@ -2449,16 +2551,16 @@
    "away": "N Iowa",
    "date": "2026-11-23",
    "home": "Davidson",
-   "home_line": null,
+   "home_line": -5.5,
    "id": "401921700",
    "neutral": true,
    "pick": "home",
    "pick_team": "Davidson",
    "score": 1.267,
-   "spread": "",
+   "spread": "DAV -5.5",
    "tier": "Clear edge",
    "time": "2026-11-23T16:00Z",
-   "total": null
+   "total": 140.5
   },
   "401921701": {
    "away": "Charlotte",
@@ -2484,6 +2586,12 @@
    "neutral": true,
    "pick": "home",
    "pick_team": "Duquesne",
+   "result": {
+    "ats": "L",
+    "away": 79,
+    "home": 61,
+    "su": "L"
+   },
    "score": 0.543,
    "spread": "WYO -3.5",
    "tier": "Slight edge",
@@ -2494,16 +2602,16 @@
    "away": "Washington",
    "date": "2026-11-23",
    "home": "BYU",
-   "home_line": null,
+   "home_line": -11.5,
    "id": "401921708",
    "neutral": true,
    "pick": "home",
    "pick_team": "BYU",
-   "score": 1.129,
-   "spread": "",
+   "score": 1.091,
+   "spread": "BYU -11.5",
    "tier": "Clear edge",
    "time": "2026-11-23T22:00Z",
-   "total": null
+   "total": 165.5
   },
   "401921723": {
    "away": "Manhattan",
@@ -2535,6 +2643,12 @@
    "neutral": false,
    "pick": "home",
    "pick_team": "Cincinnati",
+   "result": {
+    "ats": "L",
+    "away": 68,
+    "home": 78,
+    "su": "W"
+   },
    "score": 0.983,
    "spread": "CIN -30.5",
    "tier": "Clear edge",
@@ -2676,6 +2790,12 @@
    "neutral": false,
    "pick": "away",
    "pick_team": "W Florida",
+   "result": {
+    "ats": "L",
+    "away": 66,
+    "home": 79,
+    "su": "L"
+   },
    "score": 0.133,
    "spread": "USA -6.5",
    "tier": "Even",
@@ -2712,6 +2832,12 @@
    "neutral": false,
    "pick": "away",
    "pick_team": "NC Asheville",
+   "result": {
+    "ats": "W",
+    "away": 77,
+    "home": 80,
+    "su": "L"
+   },
    "score": 0.065,
    "spread": "SAM -9.5",
    "tier": "Even",
@@ -2790,6 +2916,12 @@
    "neutral": true,
    "pick": "home",
    "pick_team": "Albany",
+   "result": {
+    "ats": "L",
+    "away": 78,
+    "home": 75,
+    "su": "L"
+   },
    "score": 1.323,
    "spread": "UALB -1.5",
    "tier": "Strong edge",
@@ -2821,16 +2953,16 @@
    "away": "Long Beach St",
    "date": "2026-11-23",
    "home": "Florida Intl",
-   "home_line": null,
+   "home_line": -9.5,
    "id": "401924266",
    "neutral": false,
    "pick": "home",
    "pick_team": "Florida Intl",
    "score": 1.563,
-   "spread": "",
+   "spread": "FIU -9.5",
    "tier": "Strong edge",
    "time": "2026-11-23T18:00Z",
-   "total": null
+   "total": 160.5
   },
   "401924722": {
    "away": "Cornell",
@@ -2946,6 +3078,12 @@
    "neutral": true,
    "pick": "home",
    "pick_team": "Lamar",
+   "result": {
+    "ats": "L",
+    "away": 85,
+    "home": 81,
+    "su": "L"
+   },
    "score": 1.317,
    "spread": "LAM -2.5",
    "tier": "Strong edge",
@@ -3003,6 +3141,12 @@
    "neutral": true,
    "pick": "away",
    "pick_team": "Troy",
+   "result": {
+    "ats": "L",
+    "away": 78,
+    "home": 77,
+    "su": "W"
+   },
    "score": 0.72,
    "spread": "TROY -6.5",
    "tier": "Slight edge",
@@ -3249,6 +3393,12 @@
    "neutral": true,
    "pick": "away",
    "pick_team": "South Dakota",
+   "result": {
+    "ats": "W",
+    "away": 74,
+    "home": 73,
+    "su": "W"
+   },
    "score": 0.471,
    "spread": "UTU -1.5",
    "tier": "Slight edge",
@@ -3280,16 +3430,16 @@
    "away": "NC Greensboro",
    "date": "2026-11-23",
    "home": "Pepperdine",
-   "home_line": null,
+   "home_line": -11.5,
    "id": "401926183",
    "neutral": false,
    "pick": "home",
    "pick_team": "Pepperdine",
-   "score": 0.273,
-   "spread": "",
+   "score": 0.274,
+   "spread": "PEPP -11.5",
    "tier": "Even",
    "time": "2026-11-24T02:30Z",
-   "total": null
+   "total": 152.5
   },
   "401926217": {
    "away": "Presbyterian",
@@ -3378,6 +3528,12 @@
    "neutral": true,
    "pick": "home",
    "pick_team": "Liberty",
+   "result": {
+    "ats": "L",
+    "away": 92,
+    "home": 88,
+    "su": "L"
+   },
    "score": 0.081,
    "spread": "LIB -1.5",
    "tier": "Even",
@@ -3451,16 +3607,16 @@
    "away": "St Bonaventure",
    "date": "2026-11-23",
    "home": "App State",
-   "home_line": null,
+   "home_line": 4.5,
    "id": "401927397",
    "neutral": true,
    "pick": "away",
    "pick_team": "St Bonaventure",
-   "score": 1.39,
-   "spread": "",
+   "score": 1.391,
+   "spread": "SBU -4.5",
    "tier": "Strong edge",
    "time": "2026-11-23T16:00Z",
-   "total": null
+   "total": 133.5
   },
   "401928354": {
    "away": "UCSB",
@@ -3513,6 +3669,12 @@
    "neutral": true,
    "pick": "home",
    "pick_team": "New Mexico St",
+   "result": {
+    "ats": "L",
+    "away": 84,
+    "home": 79,
+    "su": "L"
+   },
    "score": 0.456,
    "spread": "NMSU -1.5",
    "tier": "Slight edge",
@@ -3549,6 +3711,12 @@
    "neutral": true,
    "pick": "away",
    "pick_team": "G Washington",
+   "result": {
+    "ats": "L",
+    "away": 78,
+    "home": 86,
+    "su": "L"
+   },
    "score": 1.28,
    "spread": "GW -5.5",
    "tier": "Clear edge",
@@ -3580,16 +3748,16 @@
    "away": "Akron",
    "date": "2026-11-23",
    "home": "Wright St",
-   "home_line": null,
+   "home_line": -1.5,
    "id": "401928830",
    "neutral": true,
    "pick": "home",
    "pick_team": "Wright St",
-   "score": 1.185,
-   "spread": "",
+   "score": 1.186,
+   "spread": "WRST -1.5",
    "tier": "Clear edge",
    "time": "2026-11-23T18:30Z",
-   "total": null
+   "total": 147.5
   },
   "401928998": {
    "away": "Troy",
@@ -3636,6 +3804,12 @@
    "neutral": false,
    "pick": "home",
    "pick_team": "Canisius",
+   "result": {
+    "ats": "L",
+    "away": 66,
+    "home": 46,
+    "su": "L"
+   },
    "score": 0.322,
    "spread": "CAN -4.5",
    "tier": "Even",
@@ -3651,6 +3825,12 @@
    "neutral": false,
    "pick": "home",
    "pick_team": "Texas St",
+   "result": {
+    "ats": "W",
+    "away": 69,
+    "home": 95,
+    "su": "W"
+   },
    "score": 1.484,
    "spread": "TXST -2.5",
    "tier": "Strong edge",
@@ -3661,31 +3841,31 @@
    "away": "Yale",
    "date": "2026-11-23",
    "home": "Belmont",
-   "home_line": null,
+   "home_line": -2.5,
    "id": "401929286",
    "neutral": true,
    "pick": "home",
    "pick_team": "Belmont",
    "score": 0.976,
-   "spread": "",
+   "spread": "BEL -2.5",
    "tier": "Clear edge",
    "time": "2026-11-23T21:00Z",
-   "total": null
+   "total": 141.5
   },
   "401929445": {
    "away": "Arkansas St",
    "date": "2026-11-23",
    "home": "S Utah",
-   "home_line": null,
+   "home_line": 6.5,
    "id": "401929445",
    "neutral": true,
    "pick": "away",
    "pick_team": "Arkansas St",
    "score": 2.28,
-   "spread": "",
+   "spread": "ARST -6.5",
    "tier": "Lopsided",
    "time": "2026-11-23T20:30Z",
-   "total": null
+   "total": 159.5
   },
   "401929459": {
    "away": "S Alabama",
